@@ -51,11 +51,14 @@ class ASTNode {
         "expr"
 
     function toks()
-        []
+        (print("toks() this="+this), [])
 
     function intern(pool) {
         throw "unimplemented intern for " + this
     }
+
+    function def()
+        ""
 
 }
 
@@ -125,6 +128,9 @@ class PropName extends ASTNode implements FixtureName, Serializable {
         e.push(name.intern(pool))
         return pool.intern(e)
     }
+
+    override function toks()
+        name.toks()
 }
 
 class InitBinding extends ASTNode implements Serializable {
@@ -141,6 +147,11 @@ class InitBinding extends ASTNode implements Serializable {
         e.push(expr.intern(pool))
         return pool.intern(e)
     }
+
+    override function toks() {
+        return name.toks().concat(expr.toks())  // FIXME this doesn't include the operator token
+    }
+
 }
 
 class Name extends ASTNode implements Serializable {
@@ -414,6 +425,10 @@ class TernaryExpr extends Expr implements Serializable {
         let n3 = e3.intern(pool)
         return pool.intern(["TernaryExpr", n1, n2, n3])
     }
+
+    override function toks()
+        e1.toks().concat(e2.toks()).concat(e3.toks())
+
 }
 
 class BinaryExpr extends Expr implements Serializable {
@@ -432,6 +447,11 @@ class BinaryExpr extends Expr implements Serializable {
         e.push(e2.intern(pool))
         return pool.intern(e)
     }
+
+    override function toks() {
+        return e1.toks().concat(e2.toks())  // FIXME this doesn't include the operator token
+    }
+
 }
 
 class BinaryTypeExpr extends Expr implements Serializable {
@@ -468,6 +488,9 @@ class UnaryExpr extends Expr implements Serializable {
         return pool.intern(e)
     }
 
+    override function toks()
+        e1.toks()
+
 }
 
 // FIXME: ex => expr
@@ -482,7 +505,10 @@ class TypeOpExpr extends Expr implements Serializable {
 
 class ThisExpr extends Expr implements Serializable {
     const strict: Boolean;
-    function ThisExpr(strict) : strict=strict {}
+    const tokens
+    function ThisExpr(strict, tokens=null) 
+        : strict=strict
+        , tokens=tokens {}
 
     function serialize(s)
         s.sClass(this, "ThisExpr", "strict");
@@ -493,6 +519,10 @@ class ThisExpr extends Expr implements Serializable {
     override function intern(pool) {
         return pool.intern(["ThisExpr"])
     }
+
+    override function toks()
+        tokens
+
 }
 
 class ThisGeneratorExpr extends Expr implements Serializable {
@@ -548,6 +578,14 @@ class CallExpr extends Expr implements Serializable {
             e.push(arg.intern(pool))
         }
         return pool.intern(e)
+    }
+
+    override function toks() {
+        let tt = expr.toks()
+        for each (arg in args) {
+            tt.push(arg.toks())
+        }
+        return tt
     }
 
 }
@@ -608,6 +646,14 @@ class NewExpr extends Expr implements Serializable {
         return pool.intern(e)
     }
 
+    override function toks() {
+        let tt = expr.toks()
+        for each (arg in args) {
+            tt.push(arg.toks())
+        }
+        return tt
+    }
+
 }
 
 class ObjectRef extends Expr implements Serializable {
@@ -659,6 +705,9 @@ class ComputedName extends Expr implements Serializable {
         return pool.intern(e)
     }
 
+    override function toks()
+        expr.toks()
+
 }
 
 // FIXME: le? re?
@@ -685,6 +734,10 @@ class SetExpr extends Expr implements Serializable {
         e.push(re.intern(pool))
         return pool.intern(e)
     }
+
+    override function toks()
+        le.toks().concat(re.toks())
+
 }
 
 class EvalScopeInitExpr extends Expr implements Serializable {
@@ -794,6 +847,15 @@ class InitExpr extends Expr implements Serializable {
         }
         return pool.intern(e)
     }
+
+    override function toks() {
+        let tt = [ ]
+        for each (let i in inits) {
+            tt.push(i.toks())
+        }
+        return tt
+    }
+
 }
 
 class GetTemp extends Expr implements Serializable {
@@ -844,7 +906,7 @@ class Identifier extends Expr implements IdentExpr, Serializable {
     const nss: [...(Ast::Namespace | Expr)]
     var binding
     var bindingBody
-    var tokens
+    const tokens
     function Identifier (ident,nss,pos=0, tokens=null)
         : ident = ident
         , nss = nss
@@ -859,13 +921,17 @@ class Identifier extends Expr implements IdentExpr, Serializable {
         ident
 
     override function toks()
-        tokens
+        tokens?tokens:[]
 
     override function intern(pool) {
         let e = ["Identifier"]
         e.push(String(ident))
         return pool.intern(e)
     }
+
+    override function def()
+        bindingBody
+
 
 }
 
@@ -892,8 +958,10 @@ interface LiteralExpr {
 }
 
 class LiteralNull extends Expr implements LiteralExpr, Serializable {
-    function LiteralNull(pos=0)
-        : super(pos) { }
+    const tokens
+
+    function LiteralNull(pos=0, tokens=null)
+        : tokens=tokens, super(pos) { }
     
     function serialize(s)
         s.sClass(this, "LiteralNull");
@@ -903,11 +971,14 @@ class LiteralNull extends Expr implements LiteralExpr, Serializable {
         return pool.intern(e)
     }
 
+    override function toks()
+        tokens
 }
 
 class LiteralUndefined extends Expr implements LiteralExpr, Serializable {
-    function LiteralUndefined(pos=0)
-        : super(pos) { }
+    const tokens
+    function LiteralUndefined(pos=0, tokens=null)
+        : tokens=tokens, super(pos) { }
 
     function serialize(s)
         s.sClass(this, "LiteralUndefined");
@@ -916,12 +987,17 @@ class LiteralUndefined extends Expr implements LiteralExpr, Serializable {
         let e = ["LiteralUndefined"]
         return pool.intern(e)
     }
+
+    override function toks()
+        tokens
 }
 
 class LiteralDouble extends Expr implements LiteralExpr, Serializable {
     const doubleValue : Number;
-    function LiteralDouble (doubleValue, pos=0)
+    const tokens
+    function LiteralDouble (doubleValue, pos=0, tokens=null)
         : doubleValue=doubleValue
+        , tokens=tokens
         , super(pos) { }
 
     function serialize(s)
@@ -932,6 +1008,9 @@ class LiteralDouble extends Expr implements LiteralExpr, Serializable {
         e.push('"'+doubleValue+'"')
         return pool.intern(e)
     }
+
+    override function toks()
+        tokens
 }
 
 class LiteralDecimal extends Expr implements LiteralExpr, Serializable {
@@ -978,8 +1057,10 @@ class LiteralUInt extends Expr implements LiteralExpr, Serializable {
 
 class LiteralBoolean extends Expr implements LiteralExpr, Serializable {
     const booleanValue : Boolean;
-    function LiteralBoolean(booleanValue, pos=0) 
+    const tokens
+    function LiteralBoolean(booleanValue, pos=0, tokens=null) 
         : booleanValue=booleanValue
+        , tokens=tokens
         , super(pos) {}
 
     function serialize(s)
@@ -990,12 +1071,17 @@ class LiteralBoolean extends Expr implements LiteralExpr, Serializable {
         e.push(String(booleanValue))
         return pool.intern(e)
     }
+
+    override function toks()
+        tokens
 }
 
 class LiteralString extends Expr implements LiteralExpr, Serializable {
     const strValue : Token::Tok;
-    function LiteralString (strValue, pos=0)
+    const tokens
+    function LiteralString (strValue, pos=0, tokens=null)
         : strValue = strValue
+        , tokens=tokens
         , super(pos) {}
 
     function serialize(s)
@@ -1006,6 +1092,9 @@ class LiteralString extends Expr implements LiteralExpr, Serializable {
         e.push(String(strValue))
         return pool.intern(e)
     }
+
+    override function toks()
+        tokens
 }
 
 class LiteralArray extends Expr implements LiteralExpr, Serializable {
@@ -1027,6 +1116,14 @@ class LiteralArray extends Expr implements LiteralExpr, Serializable {
             e.push(expr.intern(pool))
         }
         return pool.intern(e)
+    }
+
+    override function toks() {
+        var tt = [ ]
+        for each (let e in exprs) {
+            tt.push(e.toks())
+        }
+        return tt
     }
 
 }

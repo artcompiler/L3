@@ -137,14 +137,14 @@ class KaryotypeEmitter {
         }
     }
 
-    function addExpr(id, toks) {
+    function addExpr(id, toks, def) {
         //print("addRef() s="+s+" b="+b);
-        expr(id, toks);
+        expr(id, toks, def);
     }
 
-    function expr(i, t) {
+    function expr(i, t, d) {
         t = t ? t : [ ]
-        var expr = {id: i, tokens: t}
+        var expr = {id: i, tokens: t, def: d}
         var exprs = exprsStack[exprsStack.length-1]
         exprs.push(expr)
     }

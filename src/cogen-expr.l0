@@ -109,7 +109,7 @@ function cgExpr(ctx, e) {
         Gen::internalError(ctx, "Unimplemented expression type " + e);
     }
     }
-    ke.addExpr(e.intern(ctx.pool), e.toks())
+    ke.addExpr(e.intern(ctx.pool), e.toks(), e.def())
 }
 
 function cgTernaryExpr(ctx, { e1: test, e2: consequent, e3: alternate }) {
@@ -725,7 +725,7 @@ function cgNewExpr(ctx, {expr, args, spread}) {
 
 function cgObjectRef(ctx, {base, ident}) {
     let {asm, kemitter:ke} = ctx;
-    //cgExpr(ctx, base);
+    cgExpr(ctx, base);
     asm.I_getproperty(cgIdentExpr(ctx, ident));
     if (!(ident is Ast::ComputedName)) {
         var tokens = base.toks().concat(ident.toks())
@@ -1209,12 +1209,13 @@ function cgFindProp(ctx, id:IdentExpr, is_strict = false) {
         //print("cgFindProp() id="+id.str()+" binding="+sb+" sb.scope_name="+sb.scope_name)
         asm.I_getlocal(sb.scope);
         ke.addRef(ctx, id.str(), sb.scope_name, id.toks);
-        id.bindingBody = name;
+        id.bindingBody = sb.scope_name;
     }
     case ( e : * ) {
         //print("cgFindProp() id="+id.str()+" binding="+"none")
-        ke.addSlot(ctx, id.str(), "null", true, [1])
-        ke.addRef(ctx, id.str(), "program", id.toks());
+//        ke.addSlot(ctx, id.str(), "null", true, [1])
+//        ke.addRef(ctx, id.str(), "program", id.toks());
+        id.bindingBody = "program"
 
         if( is_strict )
             asm.I_findpropstrict(cgIdentExpr(ctx, id));

@@ -844,11 +844,11 @@ final class Parser
         let pos = position();   // Record the source location before consuming the token
         switch (hd ()) {
         case Token::Null:
-            return let (expr = new Ast::LiteralNull(pos)) next(), expr;
+            return let (expr = new Ast::LiteralNull(pos, [tokenStream.length-1])) next(), expr;
 
         case Token::True:
         case Token::False:
-            return let (expr = new Ast::LiteralBoolean(hd() == Token::True, pos)) next(), expr;
+            return let (expr = new Ast::LiteralBoolean(hd() == Token::True, pos, [tokenStream.length-1])) next(), expr;
 
         case Token::IntLiteral:
             return let (expr = new Ast::LiteralInt(parseInt(lexeme().text), pos)) next(), expr;
@@ -857,7 +857,7 @@ final class Parser
             return let (expr = new Ast::LiteralUInt(parseInt(lexeme().text), pos)) next(), expr;
 
         case Token::DoubleLiteral:
-            return let (expr = new Ast::LiteralDouble(parseFloat(lexeme().text), pos)) next(), expr;
+            return let (expr = new Ast::LiteralDouble(parseFloat(lexeme().text), pos, [tokenStream.length-1])) next(), expr;
 
         case Token::DecimalLiteral:
             return let (expr = new Ast::LiteralDecimal(new decimal(lexeme().text), pos)) next(), expr;
@@ -865,7 +865,7 @@ final class Parser
         case Token::StringLiteral:
             if (hd2() == Token::DoubleColon)
                 break;
-            return let (expr = new Ast::LiteralString (lexeme(), pos)) next(), expr;
+            return let (expr = new Ast::LiteralString (lexeme(), pos,  [tokenStream.length-1])) next(), expr;
 
         case Token::RegexpLiteral:
             return let (expr = new Ast::LiteralRegExp(lexeme(), pos)) next(), expr;
@@ -878,7 +878,7 @@ final class Parser
                 if (match(Token::Function))
                     return new Ast::ThisFunctionExpr();
             }
-            return new Ast::ThisExpr(cx.getStrict());
+            return new Ast::ThisExpr(cx.getStrict(), [tokenStream.length-1]);
 
         case Token::LeftParen: {
             let e = parenExpression();
