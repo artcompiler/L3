@@ -57,6 +57,6 @@ $BIN/shell $BIN/l0c.swf \
        $DIR/comp-env.l0 \
        $DIR/sampler.l0 \
        $DIR/swf.l0 \
-       $DIR/l1c.l0
+       $DIR/l3c.l0
 
-cp ../src/l1c.l0.swf ../bin/l1c.swf
+cp ../src/l3c.l0.swf ../bin/l3c.swf
