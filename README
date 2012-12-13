@@ -1,7 +1,7 @@
 OVERVIEW
 
-L3 is a language with ActionScript 3 syntax and AS3 AST tree building semantics. It produces AS3
-ASTs from AS3 source code.
+L3 is a language with ActionScript 3 syntax and AS3 AST tree building semantics.
+It produces AS3 ASTs from AS3 source code.
 
 L3 is written in L0.
 
@@ -21,7 +21,7 @@ USING
 
 To run:
 
-    shell l3c.swf -- test.as
+    ./comp.sh test.as
 
 This produces the file:
 
