@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
 /* vi: set ts=4 sw=4 expandtab: (add to ~/.vimrc: set modeline modelines=5) */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -58,7 +58,7 @@ final class Tok /*implements Serializable*/
     const hash: double;
     const text: String;
 
-    function Tok(kind,text,hash) : kind=kind, text=text, hash=hash { }
+    function Tok(kind,text,hash) : kind=kind, text=text, hash=hash {}
 
     // A toString call on this is almost certainly an error that we
     // want to catch very quickly; use serialize() instead.  (May lift
@@ -72,15 +72,6 @@ final class Tok /*implements Serializable*/
 
     function serialize()
         "<#token " + kind + " " + text + " " + hash + ">"
-
-    function size() {
-        switch (kind) {
-        case StringLiteral:
-            return text.length+2;
-        default:
-            return text.length;
-        }
-    }
 }
 
 function tokenKind(tid)
@@ -199,60 +190,60 @@ internal function setup(id, name, attr=0) {
     tokenAttr[id] = attr;
 }
 
-const Minus = 0;                                        setup(Token::Minus,"-", ADDITIVEOP);
-const MinusMinus = Token::Minus + 1;                    setup(Token::MinusMinus,"--");
-const Not = Token::MinusMinus + 1;                      setup(Token::Not,"!");
-const NotEqual = Token::Not + 1;                        setup(Token::NotEqual,"!=", EQUALITY);
-const StrictNotEqual = Token::NotEqual + 1;             setup(Token::StrictNotEqual,"!==", EQUALITY);
-const Remainder = Token::StrictNotEqual + 1;            setup(Token::Remainder,"%", MULTIPLICATIVEOP);
-const RemainderAssign = Token::Remainder + 1;           setup(Token::RemainderAssign,"%=", OPASSIGN);
-const BitwiseAnd = Token::RemainderAssign + 1;          setup(Token::BitwiseAnd,"&");
-const LogicalAnd = Token::BitwiseAnd + 1;               setup(Token::LogicalAnd,"&&");
-const LogicalAndAssign = Token::LogicalAnd + 1;         setup(Token::LogicalAndAssign,"&&=", OPASSIGN);
-const BitwiseAndAssign = Token::LogicalAndAssign + 1;   setup(Token::BitwiseAndAssign,"&=", OPASSIGN);
-const LeftParen = Token::BitwiseAndAssign + 1;          setup(Token::LeftParen,"(");
-const RightParen = Token::LeftParen + 1;                setup(Token::RightParen,")");
-const Mult = Token::RightParen + 1;                     setup(Token::Mult,"*", MULTIPLICATIVEOP);
-const MultAssign = Token::Mult + 1;                     setup(Token::MultAssign,"*=", OPASSIGN);
-const Comma = Token::MultAssign  + 1;                   setup(Token::Comma,",");
-const Dot = Token::Comma + 1;                           setup(Token::Dot,".");
-const TripleDot = Token::Dot + 1;                       setup(Token::TripleDot,"...");
-const LeftDotAngle = Token::TripleDot + 1;              setup(Token::LeftDotAngle,".<");
-const Div = Token::LeftDotAngle + 1;                    setup(Token::Div,"/", MULTIPLICATIVEOP);
-const DivAssign = Token::Div + 1;                       setup(Token::DivAssign,"/=", OPASSIGN);
-const Colon = Token::DivAssign + 1;                     setup(Token::Colon,":");
-const DoubleColon = Token::Colon + 1;                   setup(Token::DoubleColon,"::");
-const SemiColon = Token::DoubleColon + 1;               setup(Token::SemiColon,";");
-const QuestionMark = Token::SemiColon + 1;              setup(Token::QuestionMark,"?");
-const LeftBracket = Token::QuestionMark + 1;            setup(Token::LeftBracket,"[");
-const RightBracket = Token::LeftBracket + 1;            setup(Token::RightBracket,"]");
-const LogicalXorAssign = Token::RightBracket + 1;       setup(Token::LogicalXorAssign,"~=", OPASSIGN);
-const LeftBrace = Token::LogicalXorAssign + 1;          setup(Token::LeftBrace,"{");
-const LogicalOr = Token::LeftBrace + 1;                 setup(Token::LogicalOr,"||");
-const LogicalOrAssign = Token::LogicalOr + 1;           setup(Token::LogicalOrAssign,"|=", OPASSIGN);
-const BitwiseOr = Token::LogicalOrAssign + 1;           setup(Token::BitwiseOr,"|");
-const BitwiseOrAssign = Token::BitwiseOr + 1;           setup(Token::BitwiseOrAssign,"|=", OPASSIGN);
-const BitwiseXor = Token::BitwiseOrAssign + 1;          setup(Token::BitwiseXor,"^");
-const BitwiseXorAssign = Token::BitwiseXor + 1;         setup(Token::BitwiseXorAssign,"^=", OPASSIGN);
-const RightBrace = Token::BitwiseXorAssign + 1;         setup(Token::RightBrace,"{");
-const BitwiseNot = Token::RightBrace + 1;               setup(Token::BitwiseNot,"~");
-const Plus = Token::BitwiseNot + 1;                     setup(Token::Plus,"+", ADDITIVEOP);
-const PlusPlus = Token::Plus + 1;                       setup(Token::PlusPlus,"++");
-const PlusAssign = Token::PlusPlus + 1;                 setup(Token::PlusAssign,"+=", OPASSIGN);
-const LessThan = Token::PlusAssign + 1;                 setup(Token::LessThan,"<", RELATIONAL);
-const LeftShift = Token::LessThan + 1;                  setup(Token::LeftShift,"<<", SHIFTOP);
-const LeftShiftAssign = Token::LeftShift + 1;           setup(Token::LeftShiftAssign,"<<=", OPASSIGN);
-const LessThanOrEqual = Token::LeftShiftAssign + 1;     setup(Token::LessThanOrEqual,"<=", RELATIONAL);
-const Assign = Token::LessThanOrEqual + 1;              setup(Token::Assign,"=");
-const MinusAssign = Token::Assign + 1;                  setup(Token::MinusAssign,"-=", OPASSIGN);
-const Equal = Token::MinusAssign + 1;                   setup(Token::Equal,"==", EQUALITY);
-const StrictEqual = Token::Equal + 1;                   setup(Token::StrictEqual,"===", EQUALITY);
-const GreaterThan = Token::StrictEqual + 1;             setup(Token::GreaterThan,">", RELATIONAL);
-const GreaterThanOrEqual = Token::GreaterThan + 1;      setup(Token::GreaterThanOrEqual,">=", RELATIONAL);
-const RightShift = Token::GreaterThanOrEqual + 1;       setup(Token::RightShift,">>", SHIFTOP);
-const RightShiftAssign = Token::RightShift + 1;         setup(Token::RightShiftAssign,">>=", OPASSIGN);
-const UnsignedRightShift = Token::RightShiftAssign + 1; setup(Token::UnsignedRightShift,">>>", SHIFTOP);
-const UnsignedRightShiftAssign = Token::UnsignedRightShift + 1;   setup(Token::UnsignedRightShiftAssign,">>>=", OPASSIGN);
+const Minus = 0;                                        setup(Token::Minus,"minus", ADDITIVEOP);
+const MinusMinus = Token::Minus + 1;                    setup(Token::MinusMinus,"minusminus");
+const Not = Token::MinusMinus + 1;                      setup(Token::Not,"not");
+const NotEqual = Token::Not + 1;                        setup(Token::NotEqual,"notequals", EQUALITY);
+const StrictNotEqual = Token::NotEqual + 1;             setup(Token::StrictNotEqual,"strictnotequals", EQUALITY);
+const Remainder = Token::StrictNotEqual + 1;            setup(Token::Remainder,"modulus", MULTIPLICATIVEOP);
+const RemainderAssign = Token::Remainder + 1;           setup(Token::RemainderAssign,"modulusassign", OPASSIGN);
+const BitwiseAnd = Token::RemainderAssign + 1;          setup(Token::BitwiseAnd,"bitwiseand");
+const LogicalAnd = Token::BitwiseAnd + 1;               setup(Token::LogicalAnd,"logicaland");
+const LogicalAndAssign = Token::LogicalAnd + 1;         setup(Token::LogicalAndAssign,"logicalandassign", OPASSIGN);
+const BitwiseAndAssign = Token::LogicalAndAssign + 1;   setup(Token::BitwiseAndAssign,"bitwiseandassign", OPASSIGN);
+const LeftParen = Token::BitwiseAndAssign + 1;          setup(Token::LeftParen,"leftparen");
+const RightParen = Token::LeftParen + 1;                setup(Token::RightParen,"rightparen");
+const Mult = Token::RightParen + 1;                     setup(Token::Mult,"mult", MULTIPLICATIVEOP);
+const MultAssign = Token::Mult + 1;                     setup(Token::MultAssign,"multassign", OPASSIGN);
+const Comma = Token::MultAssign  + 1;                   setup(Token::Comma,"comma");
+const Dot = Token::Comma + 1;                           setup(Token::Dot,"dot");
+const TripleDot = Token::Dot + 1;                       setup(Token::TripleDot,"tripledot");
+const LeftDotAngle = Token::TripleDot + 1;              setup(Token::LeftDotAngle,"leftdotangle");
+const Div = Token::LeftDotAngle + 1;                    setup(Token::Div,"div", MULTIPLICATIVEOP);
+const DivAssign = Token::Div + 1;                       setup(Token::DivAssign,"divassign", OPASSIGN);
+const Colon = Token::DivAssign + 1;                     setup(Token::Colon,"colon");
+const DoubleColon = Token::Colon + 1;                   setup(Token::DoubleColon,"doublecolon");
+const SemiColon = Token::DoubleColon + 1;               setup(Token::SemiColon,"semicolon");
+const QuestionMark = Token::SemiColon + 1;              setup(Token::QuestionMark,"questionmark");
+const LeftBracket = Token::QuestionMark + 1;            setup(Token::LeftBracket,"leftbracket");
+const RightBracket = Token::LeftBracket + 1;            setup(Token::RightBracket,"rightbracket");
+const LogicalXorAssign = Token::RightBracket + 1;       setup(Token::LogicalXorAssign,"logicalxorassign", OPASSIGN);
+const LeftBrace = Token::LogicalXorAssign + 1;          setup(Token::LeftBrace,"leftbrace");
+const LogicalOr = Token::LeftBrace + 1;                 setup(Token::LogicalOr,"logicalor");
+const LogicalOrAssign = Token::LogicalOr + 1;           setup(Token::LogicalOrAssign,"logicalorassign", OPASSIGN);
+const BitwiseOr = Token::LogicalOrAssign + 1;           setup(Token::BitwiseOr,"bitwiseor");
+const BitwiseOrAssign = Token::BitwiseOr + 1;           setup(Token::BitwiseOrAssign,"bitwiseorassign", OPASSIGN);
+const BitwiseXor = Token::BitwiseOrAssign + 1;          setup(Token::BitwiseXor,"bitwisexor");
+const BitwiseXorAssign = Token::BitwiseXor + 1;         setup(Token::BitwiseXorAssign,"bitwisexorassign", OPASSIGN);
+const RightBrace = Token::BitwiseXorAssign + 1;         setup(Token::RightBrace,"rightbrace");
+const BitwiseNot = Token::RightBrace + 1;               setup(Token::BitwiseNot,"bitwisenot");
+const Plus = Token::BitwiseNot + 1;                     setup(Token::Plus,"plus", ADDITIVEOP);
+const PlusPlus = Token::Plus + 1;                       setup(Token::PlusPlus,"plusplus");
+const PlusAssign = Token::PlusPlus + 1;                 setup(Token::PlusAssign,"plusassign", OPASSIGN);
+const LessThan = Token::PlusAssign + 1;                 setup(Token::LessThan,"lessthan", RELATIONAL);
+const LeftShift = Token::LessThan + 1;                  setup(Token::LeftShift,"leftshift", SHIFTOP);
+const LeftShiftAssign = Token::LeftShift + 1;           setup(Token::LeftShiftAssign,"leftshiftassign", OPASSIGN);
+const LessThanOrEqual = Token::LeftShiftAssign + 1;     setup(Token::LessThanOrEqual,"lessthanorequals", RELATIONAL);
+const Assign = Token::LessThanOrEqual + 1;              setup(Token::Assign,"assign");
+const MinusAssign = Token::Assign + 1;                  setup(Token::MinusAssign,"minusassign", OPASSIGN);
+const Equal = Token::MinusAssign + 1;                   setup(Token::Equal,"equals", EQUALITY);
+const StrictEqual = Token::Equal + 1;                   setup(Token::StrictEqual,"strictequals", EQUALITY);
+const GreaterThan = Token::StrictEqual + 1;             setup(Token::GreaterThan,"greaterthan", RELATIONAL);
+const GreaterThanOrEqual = Token::GreaterThan + 1;      setup(Token::GreaterThanOrEqual,"greaterthanorequals", RELATIONAL);
+const RightShift = Token::GreaterThanOrEqual + 1;       setup(Token::RightShift,"rightshift", SHIFTOP);
+const RightShiftAssign = Token::RightShift + 1;         setup(Token::RightShiftAssign,"rightshiftassign", OPASSIGN);
+const UnsignedRightShift = Token::RightShiftAssign + 1; setup(Token::UnsignedRightShift,"unsignedrightshift", SHIFTOP);
+const UnsignedRightShiftAssign = Token::UnsignedRightShift + 1;   setup(Token::UnsignedRightShiftAssign,"unsignedrightshiftassign", OPASSIGN);
 
 // reserved identifiers
 

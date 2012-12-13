@@ -1,5 +1,4 @@
-/* -*- Mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
-/* vi: set ts=4 sw=4 expandtab: (add to ~/.vimrc: set modeline modelines=5) */
+/* -*- mode: java; tab-width: 4; insert-tabs-mode: nil; indent-tabs-mode: nil -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -84,9 +83,6 @@ final class Scanner
     Lex function internalError(msg) {
         Util::internalError(filename, lnCoord, msg);
     }
-
-    public function currentPos()
-        curIndex
 
     public function Scanner (src:String, filename:String, keyword_or_ident:Boolean = false)
         : src = src
@@ -222,13 +218,6 @@ final class Scanner
     function lexeme()
         src.slice (markIndex,curIndex);
 
-    public const lineBreaksByChar = [ ]
-
-    function newLine() {
-        lnCoord++
-        lineBreaksByChar.push(curIndex+1)
-    }
-
     /* Get the next token.
 
     Never returns Token::Eol.
@@ -271,13 +260,13 @@ final class Scanner
                 Lex::syntaxError("Illegal character in input: NUL");
 
             case  10 /* Char::Newline */:
-                newLine();
+                lnCoord++;
                 continue;
 
             case  13 /* Char::CarriageReturn */: 
                 if (src.charCodeAt(curIndex) == 10 /* Char::Newline */)
                     curIndex++;
-                newLine();
+                lnCoord++;
                 continue;
 
             case  32 /* Char::Space */: 
@@ -519,8 +508,8 @@ final class Scanner
                     src.charCodeAt(curIndex+5) == 111 /* Char::o */ &&
                     src.charCodeAt(curIndex+6) == 95 /* Char::_ */ &&
                     src.charCodeAt(curIndex+7) == 95 /* Char::_ */ &&
-                    (!ESC::flags.es3_keywords &&
-                     notPartOfIdent[src.charCodeAt(curIndex+8)])) {
+                    !ESC::flags.es3_keywords &&
+                    notPartOfIdent[src.charCodeAt(curIndex+8)]) {
                     curIndex += 8;
                     return Token::Proto;
                 }
@@ -569,8 +558,8 @@ final class Scanner
                     if (src.charCodeAt(curIndex+1) == 97 /* Char::a */ &&
                         src.charCodeAt(curIndex+2) == 115 /* Char::s */ &&
                         src.charCodeAt(curIndex+3) == 115 /* Char::s */ &&
-                        (!ESC::flags.es3_keywords &&
-                         notPartOfIdent[src.charCodeAt(curIndex+4)])) {
+                        !ESC::flags.es3_keywords &&
+                        notPartOfIdent[src.charCodeAt(curIndex+4)]) {
                         curIndex += 4;
                         return Token::Class;
                     }
@@ -581,8 +570,8 @@ final class Scanner
                         switch(src.charCodeAt(curIndex+2)) {
                         case 115: /* Char::s */
                             if (src.charCodeAt(curIndex+3) == 116 /* Char::t */ &&
-                                (!ESC::flags.es3_keywords &&
-                                 notPartOfIdent[src.charCodeAt(curIndex+4)])) {
+                                !ESC::flags.es3_keywords &&
+                                notPartOfIdent[src.charCodeAt(curIndex+4)]) {
                                 curIndex += 4;
                                 return Token::Const;
                             }
@@ -616,8 +605,8 @@ final class Scanner
                             src.charCodeAt(curIndex+4) == 103 /* Char::g */ &&
                             src.charCodeAt(curIndex+5) == 101 /* Char::e */ &&
                             src.charCodeAt(curIndex+6) == 114 /* Char::r */ &&
-                            (ESC::flags.es4_kwd_debugger &&
-                             notPartOfIdent[src.charCodeAt(curIndex+7)])) {
+                            ESC::flags.es4_kwd_debugger &&
+                            notPartOfIdent[src.charCodeAt(curIndex+7)]) {
                             curIndex += 7;
                             return Token::Debugger;
                         }
@@ -655,8 +644,8 @@ final class Scanner
                         src.charCodeAt(curIndex+3) == 109 /* Char::m */ &&
                         src.charCodeAt(curIndex+4) == 105 /* Char::i */ &&
                         src.charCodeAt(curIndex+5) == 99 /* Char::c */ &&
-                        (!ESC::flags.es3_keywords &&
-                         notPartOfIdent[src.charCodeAt(curIndex+6)])) {
+                        !ESC::flags.es3_keywords &&
+                        notPartOfIdent[src.charCodeAt(curIndex+6)]) {
                         curIndex += 6;
                         return Token::Dynamic;
                     }
@@ -697,7 +686,7 @@ final class Scanner
                                     curIndex += 6;
                                     return Token::Finally;
                                 }
-                                if (ESC::flags.es3_keywords || !ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+4)])) 
+                                if (!ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+4)])) 
                                     break bigswitch;
                                 curIndex += 4;
                                 return Token::Final;
@@ -761,8 +750,8 @@ final class Scanner
                             src.charCodeAt(curIndex+5) == 97 /* Char::a */ &&
                             src.charCodeAt(curIndex+6) == 99 /* Char::c */ &&
                             src.charCodeAt(curIndex+7) == 101 /* Char::e */ &&
-                            (!ESC::flags.es3_keywords &&
-                             notPartOfIdent[src.charCodeAt(curIndex+8)])) {
+                            !ESC::flags.es3_keywords &&
+                            notPartOfIdent[src.charCodeAt(curIndex+8)]) {
                             curIndex += 8;
                             return Token::Interface;
                         }
@@ -774,7 +763,7 @@ final class Scanner
                         return Token::In;
                     }
                 case 115: /* Char::s */
-                    if (ESC::flags.es3_keywords || !ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+1)])) 
+                    if (!ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+1)])) 
                         break bigswitch;
                     curIndex += 1;
                     return Token::Is;
@@ -784,8 +773,8 @@ final class Scanner
             case 108: /* Char::l */
                 if (src.charCodeAt(curIndex+0) == 101 /* Char::e */ &&
                     src.charCodeAt(curIndex+1) == 116 /* Char::t */ &&
-                    (!ESC::flags.es3_keywords &&
-                     notPartOfIdent[src.charCodeAt(curIndex+2)])) {
+                    !ESC::flags.es3_keywords &&
+                    notPartOfIdent[src.charCodeAt(curIndex+2)]) {
                     curIndex += 2;
                     return Token::Let;
                 }
@@ -801,8 +790,8 @@ final class Scanner
                             src.charCodeAt(curIndex+5) == 97 /* Char::a */ &&
                             src.charCodeAt(curIndex+6) == 99 /* Char::c */ &&
                             src.charCodeAt(curIndex+7) == 101 /* Char::e */ &&
-                            (!ESC::flags.es3_keywords &&
-                             notPartOfIdent[src.charCodeAt(curIndex+8)])) {
+                            !ESC::flags.es3_keywords &&
+                            notPartOfIdent[src.charCodeAt(curIndex+8)]) {
                             curIndex += 8;
                             return Token::Namespace;
                         }
@@ -811,8 +800,8 @@ final class Scanner
                         if (src.charCodeAt(curIndex+2) == 105 /* Char::i */ &&
                             src.charCodeAt(curIndex+3) == 118 /* Char::v */ &&
                             src.charCodeAt(curIndex+4) == 101 /* Char::e */ &&
-                            (!ESC::flags.es3_keywords &&
-                             notPartOfIdent[src.charCodeAt(curIndex+5)])) {
+                            !ESC::flags.es3_keywords &&
+                            notPartOfIdent[src.charCodeAt(curIndex+5)]) {
                             curIndex += 5;
                             return Token::Native;
                         }
@@ -846,8 +835,8 @@ final class Scanner
                     src.charCodeAt(curIndex+4) == 105 /* Char::i */ &&
                     src.charCodeAt(curIndex+5) == 100 /* Char::d */ &&
                     src.charCodeAt(curIndex+6) == 101 /* Char::e */ &&
-                    (!ESC::flags.es3_keywords &&
-                     notPartOfIdent[src.charCodeAt(curIndex+7)])) {
+                    !ESC::flags.es3_keywords &&
+                    notPartOfIdent[src.charCodeAt(curIndex+7)]) {
                     curIndex += 7;
                     return Token::Override;
                 }
@@ -870,8 +859,8 @@ final class Scanner
                         src.charCodeAt(curIndex+2) == 116 /* Char::t */ &&
                         src.charCodeAt(curIndex+3) == 105 /* Char::i */ &&
                         src.charCodeAt(curIndex+4) == 99 /* Char::c */ &&
-                        (!ESC::flags.es3_keywords &&
-                         notPartOfIdent[src.charCodeAt(curIndex+5)])) {
+                        !ESC::flags.es3_keywords &&
+                        notPartOfIdent[src.charCodeAt(curIndex+5)]) {
                         curIndex += 5;
                         return Token::Static;
                     }
@@ -880,8 +869,8 @@ final class Scanner
                     if (src.charCodeAt(curIndex+1) == 112 /* Char::p */ &&
                         src.charCodeAt(curIndex+2) == 101 /* Char::e */ &&
                         src.charCodeAt(curIndex+3) == 114 /* Char::r */ &&
-                        (!ESC::flags.es3_keywords &&
-                         notPartOfIdent[src.charCodeAt(curIndex+4)])) {
+                        !ESC::flags.es3_keywords &&
+                        notPartOfIdent[src.charCodeAt(curIndex+4)]) {
                         curIndex += 4;
                         return Token::Super;
                     }
@@ -949,7 +938,7 @@ final class Scanner
                                 curIndex += 5;
                                 return Token::TypeOf;
                             }
-                            if (ESC::flags.es3_keywords || !ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+3)])) 
+                            if (!ESC::flags.es3_keywords && !(notPartOfIdent[src.charCodeAt(curIndex+3)])) 
                                 break bigswitch;
                             curIndex += 3;
                             return Token::Type;
@@ -1017,12 +1006,13 @@ final class Scanner
                     src.charCodeAt(curIndex+1) == 101 /* Char::e */ &&
                     src.charCodeAt(curIndex+2) == 108 /* Char::l */ &&
                     src.charCodeAt(curIndex+3) == 100 /* Char::d */ &&
-                    (!ESC::flags.es3_keywords &&
-                     notPartOfIdent[src.charCodeAt(curIndex+4)])) {
+                    !ESC::flags.es3_keywords &&
+                    notPartOfIdent[src.charCodeAt(curIndex+4)]) {
                     curIndex += 4;
                     return Token::Yield;
                 }
                 break bigswitch;
+
 
                 // End generated code
 
@@ -1082,7 +1072,7 @@ final class Scanner
                         continue;
                     case 0x2028: /* Char::LS */
                     case 0x2029: /* Char::PS */
-                        newLine();
+                        lnCoord++;
                         continue;
                     }
                 }
@@ -1400,7 +1390,7 @@ final class Scanner
                 c = 10;
             }
             Util::assert(c == 10 /* Char::Newline */ || c == 0x2028 /* Char::LS */ || c == 0x2029 /* Char::PS */);
-            newLine();
+            lnCoord++;
         }
     }
 
@@ -1520,14 +1510,14 @@ final class Scanner
                     cachedIndex++;
                     if (cachedSrc.charCodeAt(cachedIndex) === 10 /* Char::Newline */)
                         cachedIndex++;
-                    newLine();
+                    lnCoord++;
                     continue;
 
                 case 0x2028: /* Char::LS */
                 case 0x2029: /* Char::PS */
                 case 10 /* Char::Newline */:
                     cachedIndex++;
-                    newLine();
+                    lnCoord++;
                     continue;
 
                 default:

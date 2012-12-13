@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
 /* vi: set ts=4 sw=4 expandtab: (add to ~/.vimrc: set modeline modelines=5) */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -41,7 +41,6 @@ use default namespace Parse,
     namespace Parse;
 
 class Pattern {
-    const tokens
 }
 
 class FieldPattern extends Pattern {
@@ -74,10 +73,8 @@ class SimplePattern extends Pattern {
 
 class IdentifierPattern extends Pattern {
     const ident : Ast::IDENT;
-    const tokens
-    function IdentifierPattern (ident, tokens)
-        : ident = ident
-        , tokens = tokens { }
+    function IdentifierPattern (ident)
+        : ident = ident { }
 }
 
 class ALPHA extends Util::ENUM { function ALPHA(s) : super(s) {} }
@@ -132,9 +129,6 @@ function warning(ctx, msg) {
     let [filename, position] = extractInfo(ctx);
     Util::warning(filename, position, msg);
 }
-
-const tokenStream = [ ]
-const lineBreaksByToken = [ ]
 
 final class Parser
 {
@@ -202,28 +196,15 @@ final class Parser
     var T0=Token::NONE, T1=Token::NONE, LP=0, L0=0, L1=0;
     const tokenStore = Token::tokenStore;
 
-    function pushToken(tk) {
-        if (newline()) {
-            LP = LP ? LP : 1
-            var n = L0 - LP   // the number of newlines since last token
-            for (var i = 0; i < n; i++) {
-                lineBreaksByToken.push(tokenStream.length)
-            }
-        }
-        tokenStream.push({tid:tk, start:scan.currentPos()+1-tokenStore[tk].size(), end:scan.currentPos()+1})
-    }
-
     function start() {
         T0 = scan.start();
         L0 = scan.lnCoord;
-        pushToken(T0);
     }
 
     function div() {
         Util::assert( T0 === Token::BREAK_SLASH && T1 === Token::NONE );
         T0 = scan.div();
         L0 = scan.lnCoord;
-        pushToken(T0);
         return hd();
     }
 
@@ -231,7 +212,6 @@ final class Parser
         Util::assert( T0 === Token::BREAK_SLASH && T1 === Token::NONE );
         T0 = scan.regexp();
         L0 = scan.lnCoord;
-        pushToken(T0);
         return hd();
     }
 
@@ -239,7 +219,6 @@ final class Parser
         Util::assert( T0 === Token::BREAK_RBROCKET && T1 === Token::NONE );
         T0 = scan.brocket();
         L0 = scan.lnCoord;
-        pushToken(T0);
         return hd();
     }
 
@@ -247,7 +226,6 @@ final class Parser
         Util::assert( T0 === Token::BREAK_RBROCKET && T1 === Token::NONE );
         T0 = scan.shiftOrRelational();
         L0 = scan.lnCoord;
-        pushToken(T0);
         return hd();
     }
 
@@ -287,7 +265,6 @@ final class Parser
             T0 = scan.start();
             L0 = scan.lnCoord;
         }
-        pushToken(T0);
     }
 
     function replace (t) {
@@ -330,7 +307,7 @@ final class Parser
 
     function makeIdentifier(id : Token::Tok, nss, pos=0) : Ast::Identifier {
         Util::assert( id is Token::Tok );
-        let ident = new Ast::Identifier(id, nss, pos, [tokenStream.length-1]);
+        let ident = new Ast::Identifier(id, nss, pos);
         if (id === Token::sym_arguments) 
             cx.topFunction().uses_arguments = true;
         else if (id === Token::sym_eval)
@@ -469,7 +446,7 @@ final class Parser
             let fxtrs, exprs, expr;
             switch type (p) {
             case (p:IdentifierPattern) {
-                let nm = new Ast::PropName (new Ast::Name(ns, p.ident, p.tokens));
+                let nm = new Ast::PropName (new Ast::Name(ns, p.ident));
                 let fx = new Ast::ValFixture (t, ro);
                 fxtrs = [new Ast::Fixture(nm, fx)];
                 let inits = (e !== null) ? ([new Ast::InitBinding(nm, e)]) : []; // FIXME (fix what??)
@@ -606,11 +583,9 @@ final class Parser
     function objectInitializer () : Ast::TypeExpr {
         let [var_prefix, const_prefix] = initializerAttribute();
         let pos = position();             // Record source location of initial left brace
-        let start = tokenStream.length-1
         eat (Token::LeftBrace);
         let fields = fieldList (var_prefix, const_prefix);
         eat (Token::RightBrace);
-        let end = tokenStream.length
 
         // FIXME -- implement.
         //
@@ -634,7 +609,7 @@ final class Parser
 
         let texpr = alpha==allowColon && match(Token::Colon) ? typeExpression () : Ast::anyType;
 
-        return new Ast::LiteralObject (fields, texpr, pos, start, end);
+        return new Ast::LiteralObject (fields, texpr, pos);
     }
 
     function fieldList (var_prefix, const_prefix) : [(Ast::LiteralField | Ast::ProtoField | Ast::VirtualField)] {
@@ -697,7 +672,7 @@ final class Parser
 
         let expr = match(Token::Colon) ? fullAssignmentExpression () : null;
 
-        return new Ast::LiteralField (tag, fn, expr, fn.toks());
+        return new Ast::LiteralField (tag, fn, expr);
     }
 
     function getterOrSetterFieldMaybe(tag, kind) {
@@ -715,21 +690,21 @@ final class Parser
         case Token::StringLiteral:
             if (hd2() == Token::DoubleColon)
                 break;
-            return let (name = new Ast::Identifier(lexeme(), Ast::publicNSSL, 0, [tokenStream.length])) next(), name;
+            return let (name = new Ast::Identifier(lexeme(), Ast::publicNSSL)) next(), name;
 
         case Token::IntLiteral:
         case Token::UIntLiteral:
-            return let (name = new Ast::Identifier(Token::intern(parseInt(lexeme().text)), Ast::publicNSSL, 0, [tokenStream.length])) next(), name;
+            return let (name = new Ast::Identifier(Token::intern(parseInt(lexeme().text)), Ast::publicNSSL)) next(), name;
 
         case Token::DoubleLiteral:
-            return let (name = new Ast::Identifier(Token::intern(parseFloat(lexeme().text)), Ast::publicNSSL, 0, [tokenStream.length])) next(), name;
+            return let (name = new Ast::Identifier(Token::intern(parseFloat(lexeme().text)), Ast::publicNSSL)) next(), name;
 
         case Token::DecimalLiteral:
-            return let (name = new Ast::Identifier(Token::intern(new decimal(lexeme().text)), Ast::publicNSSL, 0, [tokenStream.length])) next(), name;
+            return let (name = new Ast::Identifier(Token::intern(new decimal(lexeme().text)), Ast::publicNSSL)) next(), name;
 
         default:
             if (Token::isReserved(hd ()))
-                return let (name = new Ast::Identifier(lexeme(), Ast::publicNSSL, 0, [tokenStream.length])) next(), name;
+                return let (name = new Ast::Identifier(lexeme(), Ast::publicNSSL)) next(), name;
             break;
         }
         return nameExpression();
@@ -844,11 +819,11 @@ final class Parser
         let pos = position();   // Record the source location before consuming the token
         switch (hd ()) {
         case Token::Null:
-            return let (expr = new Ast::LiteralNull(pos, [tokenStream.length-1])) next(), expr;
+            return let (expr = new Ast::LiteralNull(pos)) next(), expr;
 
         case Token::True:
         case Token::False:
-            return let (expr = new Ast::LiteralBoolean(hd() == Token::True, pos, [tokenStream.length-1])) next(), expr;
+            return let (expr = new Ast::LiteralBoolean(hd() == Token::True, pos)) next(), expr;
 
         case Token::IntLiteral:
             return let (expr = new Ast::LiteralInt(parseInt(lexeme().text), pos)) next(), expr;
@@ -857,7 +832,7 @@ final class Parser
             return let (expr = new Ast::LiteralUInt(parseInt(lexeme().text), pos)) next(), expr;
 
         case Token::DoubleLiteral:
-            return let (expr = new Ast::LiteralDouble(parseFloat(lexeme().text), pos, [tokenStream.length-1])) next(), expr;
+            return let (expr = new Ast::LiteralDouble(parseFloat(lexeme().text), pos)) next(), expr;
 
         case Token::DecimalLiteral:
             return let (expr = new Ast::LiteralDecimal(new decimal(lexeme().text), pos)) next(), expr;
@@ -865,7 +840,7 @@ final class Parser
         case Token::StringLiteral:
             if (hd2() == Token::DoubleColon)
                 break;
-            return let (expr = new Ast::LiteralString (lexeme(), pos,  [tokenStream.length-1])) next(), expr;
+            return let (expr = new Ast::LiteralString (lexeme(), pos)) next(), expr;
 
         case Token::RegexpLiteral:
             return let (expr = new Ast::LiteralRegExp(lexeme(), pos)) next(), expr;
@@ -878,7 +853,7 @@ final class Parser
                 if (match(Token::Function))
                     return new Ast::ThisFunctionExpr();
             }
-            return new Ast::ThisExpr(cx.getStrict(), [tokenStream.length-1]);
+            return new Ast::ThisExpr(cx.getStrict());
 
         case Token::LeftParen: {
             let e = parenExpression();
@@ -1505,7 +1480,7 @@ final class Parser
 
     function simplePattern () : Pattern {
         switch (gamma) {
-        case noExpr:    return new IdentifierPattern (identifier (), [tokenStream.length-1]);
+        case noExpr:    return new IdentifierPattern (identifier ());
         case allowExpr: return new SimplePattern (leftHandSideExpression ());
         }
     }
@@ -1542,7 +1517,7 @@ final class Parser
             field_pattern = dynamic override (alpha=allowColon, beta=allowIn) pattern ();
         else {
             if (field_name is Ast::Identifier)
-                field_pattern = new IdentifierPattern (field_name.ident, [tokenStream.length-1]);
+                field_pattern = new IdentifierPattern (field_name.ident);
             else {
                 // Could be qualified?
                 Parse::internalError(this, "unsupported fieldPattern " + field_name);
@@ -2194,7 +2169,6 @@ final class Parser
         // setters.  That would be a (much) better fit with interfaces
         // as essentially type definitions.
 
-        let tokens = [tokenStream.length]
         let name = functionName (tau == globalBlk || tau == classBlk || tau == interfaceBlk);
         let signature = functionSignature (name.kind);
         let body, strict;
@@ -2215,7 +2189,7 @@ final class Parser
         if (strict)
             checkStrictFunction(func);
 
-        let name = new Ast::PropName (new Ast::Name(attrs.ns, name.ident, tokens));
+        let name = new Ast::PropName (new Ast::Name(attrs.ns, name.ident));
         let fxtr = new Ast::MethodFixture (func, Ast::anyType, true, attrs.override, attrs.final);
         cx.addFixture(tau == localBlk ? Ast::letInit : Ast::varInit, name, fxtr, attrs.static);
     }
@@ -2224,8 +2198,6 @@ final class Parser
         let name = null;
         let signature;
         let pos = position();
-
-        let start = tokenStream.length-1;
         
         cx.enterFunction(makeAttrs());
 
@@ -2248,7 +2220,6 @@ final class Parser
         let [body, strict] = functionBody (false);
         let [vars,attr] = cx.exitFunction();
         let {params, numparams, defaults, resultType} = signature;
-        let end = tokenStream.length;
         let func = new Ast::Func(name, 
                                  body, 
                                  params, 
@@ -2259,9 +2230,7 @@ final class Parser
                                  attr,
                                  strict,
                                  pos,
-                                 filename, start, end);
-
-        print("functionExpression() start="+start+" end="+end);
+                                 filename);
         if (strict)
             checkStrictFunction(func);
 
@@ -2647,7 +2616,7 @@ final class Parser
         eat (Token::Class);
 
         let classid = identifier ();
-        let cname = new Ast::Name(attrs.ns, classid, [tokenStream.length-1]);
+        let cname = new Ast::Name(attrs.ns, classid);
         let [typeformals, nonnullable] = typeSignature ();
         let superclass = extendsClause();
         let superinterfaces = interfaceList(Token::id_implements);
@@ -2663,11 +2632,11 @@ final class Parser
             cx.pushNamespace(protectedNs);
             cx.pushNamespace(privateNs);
             cx.addFixture(Ast::varInit,
-                          new Ast::PropName(new Ast::Name(privateNs, Token::sym_private, [])),
+                          new Ast::PropName(new Ast::Name(privateNs, Token::sym_private)),
                           new Ast::NamespaceFixture(privateNs),
                           true);
             cx.addFixture(Ast::varInit,
-                          new Ast::PropName(new Ast::Name(privateNs, Token::sym_protected, [])),
+                          new Ast::PropName(new Ast::Name(privateNs, Token::sym_protected)),
                           new Ast::NamespaceFixture(protectedNs),
                           true);
 
@@ -2715,7 +2684,7 @@ final class Parser
         eat (Token::Interface);
             
         let interfaceid = identifier ();
-        let iname = new Ast::Name(attrs.ns, interfaceid, [tokenStream.length-1]);
+        let iname = new Ast::Name(attrs.ns, interfaceid);
         let [typeformals, nonnullable] = typeSignature ();
         let superinterfaces = interfaceList(Token::id_extends);
         let fx;
@@ -2816,7 +2785,7 @@ final class Parser
         else 
             nsVal = new Ast::ForgeableNamespace (initializer);
 
-        let fxname = new Ast::PropName (new Ast::Name(attrs.ns, name, [tokenStream.length-1]));
+        let fxname = new Ast::PropName (new Ast::Name(attrs.ns, name));
         let fxtr = new Ast::NamespaceFixture (nsVal);
         cx.addFixture(Ast::varInit, fxname, fxtr, attrs.static);
     }
@@ -2832,7 +2801,6 @@ final class Parser
     function typeDefinitionOrDeclaration(attrs): void {
         eat (Token::Type);
         let typename = identifier();
-        let tokens = [tokenStream.length-1]
         let [formals, nonnullable] = typeSignature();
         let fx;
         if (match(Token::Assign)) {
@@ -2842,7 +2810,7 @@ final class Parser
         else
             fx = new Ast::TypeFixtureFwd(formals, nonnullable);
         semicolon (fullStmt);
-        cx.addFixture(Ast::varInit, new Ast::PropName (new Ast::Name(attrs.ns, typename,tokens)), fx, attrs.static);
+        cx.addFixture(Ast::varInit, new Ast::PropName (new Ast::Name(attrs.ns, typename)), fx, attrs.static);
     }
 
     // DIRECTIVES
@@ -3402,10 +3370,10 @@ final class Parser
         cx.enterGlobal ();
         if (define_namespaces) {
             cx.addFixture(Ast::varInit, 
-                          new Ast::PropName(new Ast::Name(internalNamespace, Token::sym_internal, [])),
+                          new Ast::PropName(new Ast::Name(internalNamespace, Token::sym_internal)),
                           new Ast::NamespaceFixture(internalNamespace));
             cx.addFixture(Ast::varInit,
-                          new Ast::PropName(new Ast::Name(internalNamespace, Token::sym_public, [])),
+                          new Ast::PropName(new Ast::Name(internalNamespace, Token::sym_public)),
                           new Ast::NamespaceFixture(Ast::publicNS));
         }
         cx.pushNamespace(internalNamespace);

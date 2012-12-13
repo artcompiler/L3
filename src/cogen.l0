@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
 /* vi: set ts=4 sw=4 expandtab: (add to ~/.vimrc: set modeline modelines=5) */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -63,41 +63,6 @@ use namespace Abc,
     namespace Emit,
     namespace Util;
 
-
-/*
- * EXPR POOL
- */
-
-class ExprPool {
-    var map = { }
-    var exprs = [ ]
-    function intern(e) {
-        let key = e.join("#")
-        let nid
-        if (key in map) {
-            nid = map[key]
-        }
-        else {
-            nid = exprs.length
-            map[key] = nid
-            exprs.push(e)
-        }
-        print(key+"-->"+nid)
-        return nid
-    }
-
-    function dump() {
-        let str = ""
-        for (let i = 0; i < exprs.length; i++) {
-            str += "\n" + i + ": " + exprs[i]
-        }
-        return str
-    }
-
-}
-
-
-
 /* A context is a structure with the following fields.
  *
  * In the object:
@@ -112,7 +77,6 @@ class ExprPool {
  *    script   -- the only script we care about in that emitter
  *    cp       -- the emitter's constant pool
  *    filename -- the source file name (for error messages)
- *    env      -- the lexical environment (definer)
  *
  * Default fields in CTX.prototype that may be overridden in the object:
  *
@@ -156,20 +120,12 @@ function cg(tree: PROGRAM) {
 
     let e = new ABCEmitter;
     let s = e.newScript();
-    let ke = new KaryotypeEmitter();
-    let env = new Parse::Definer(null, []);
-    env.pushNamespace(Ast::publicNS);
-    let epool = new ExprPool;
 
     CTX.prototype.emitter = e;
     CTX.prototype.script = s;
     CTX.prototype.cp = e.constants;
     CTX.prototype.filename = tree.file;
     CTX.prototype.scope_reg = 0;
-    CTX.prototype.kemitter = ke;
-    CTX.prototype.env = env;
-    CTX.prototype.pool = epool
-
 
     let asm = s.init.asm;
     let capture_reg = asm.getTemp();
@@ -178,20 +134,7 @@ function cg(tree: PROGRAM) {
     asm.I_returnvalue();
     //print("iterations=" + (hits + misses) + "; hit ratio=" + hits/(hits + misses));
     //hits=misses=0;
-
-    // emit cpool ideograph
-    let chr_name = tree.file + "_cpool";
-    ke.chr_name = chr_name = chr_name.substring(chr_name.lastIndexOf('/')+1);
-    //print("constants.length="+e.constants.utf8_map.size);
-    ke.log("chr - " + chr_name + " " + chr_name + " 0 " + e.constants.utf8_map.size + " " +  "green");
-
-    // emit global catchall ideograph
-    let chr_name = tree.file + "_catchall";
-    ke.chr_name = chr_name = chr_name.substring(chr_name.lastIndexOf('/')+1);
-    ke.log("chr - " + chr_name + " " + chr_name + " 0 " + ke.unrefCount() + " " +  "red");
-    //print("ExprPool")
-    //print(epool.dump())
-    return [e.finalize(), ke.finalize(tree.file)];
+    return e.finalize();
 }
 
 /* Support for "eval".  Compile 'tree' to a special script.
@@ -231,7 +174,7 @@ function cgEval(tree: PROGRAM, name: Token::Tok, scopedesc: String) {
 
     tree.head.fixtures.push
         ( new Ast::Fixture
-          ( new Ast::PropName(new Ast::Name(Ast::publicNS, name, [])),
+          ( new Ast::PropName(new Ast::Name(Ast::publicNS, name)),
             new Ast::MethodFixture
             ( new Ast::Func
               ( new Ast::FuncName(Ast::ordinaryFunction, name),
@@ -269,16 +212,9 @@ function cgDebugFile(ctx) {
 
 function cgProgram(ctx, prog) {
     cgDebugFile(ctx);
-    var {kemitter: ke} = ctx;
-    ke.enterModule();
-    ke.enterTable("global", "global");
-    ke.enterClosure("program", "program");
     if (prog.head.fixtures != null)
         cgFixtures(ctx, prog.head.fixtures);
     cgStmts(ctx, prog.body);
-    ke.exitClosure();
-    ke.exitTable();
-    ke.exitModule(ctx.pool);
 }
 
 function cgGetFixtureNameParts(ctx, fxname) {
@@ -296,7 +232,7 @@ function cgGetFixtureNameParts(ctx, fxname) {
 }
 
 function cgFixtures(ctx, fixtures) {
-    let {target, asm, emitter, kemitter:ke} = ctx;
+    let {target, asm, emitter} = ctx;
     let {slots, use_regs, scope_reg} = getVariableDefinitionScope(ctx);
     
     if( use_regs ) {
@@ -381,8 +317,8 @@ function cgFixtures(ctx, fixtures) {
             else if (fx is NamespaceFixture) {
                 checkTrait(fxname, name, TRAIT_Slot, true);
                 slot_id = target.addTrait(new ABCSlotTrait(name, 0, true, 0, 
-                                    emitter.qname(new Ast::Name(Ast::publicNS, Token::sym_Namespace, []),false), 
-                                              emitter.namespace(fx.ns), CONSTANT_Namespace));
+                                                 emitter.qname(new Ast::Name(Ast::publicNS, Token::sym_Namespace),false), 
+                                                 emitter.namespace(fx.ns), CONSTANT_Namespace));
             }
             else if (fx is TypeFixture) {
                 //print ("warning: ignoring type fixture");
@@ -391,8 +327,8 @@ function cgFixtures(ctx, fixtures) {
                 Gen::internalError(ctx, "Unhandled fixture type " + fx);
             }
             if(slot_id != -1 && slots ){
-                //print("adding slot for ", fxname.name.id, "to", ctx.stk.tag, "slot_id ", slot_id, "scope_name", ke.currentBody().name);
-                slots.putBinding(fxname.name.id, fxname.name.ns, new Ast::SlotBind(slot_id, scope_reg, ke.currentClosure().name));
+                //print("adding slot for ", fxname.name.id, "to", ctx.stk.tag, "slot_id ", slot_id);
+                slots.putBinding(fxname.name.id, fxname.name.ns, new Ast::SlotBind(slot_id, scope_reg));
             }
         }
     }
@@ -631,13 +567,9 @@ function extractDefaultValues({emitter}, f:Func)
  * Generate code for the function
  * Return the function index
  */
-
+ 
 function cgFunc(ctx0, f:Func) {
-    let {emitter, script, cp, kemitter: ke} = ctx0;
-    ke.clearRefCount();
-
-    //print("cgFunc() vars.length="+f.vars.fixtures.length+" params.length="+f.params.fixtures.length);
-
+    let {emitter, script, cp} = ctx0;
     let use_regs = early_binding && !f.attr.reify_activation;
     let fntype = ctx0.stk != null && (ctx0.stk.tag == "instance" || ctx0.stk.tag == "class")? "method" : "function";  // brittle as hell
     let formals_types = extractFormalTypes({emitter:emitter, script:script}, f);
@@ -648,29 +580,12 @@ function cgFunc(ctx0, f:Func) {
     }
     else
         name = f.name.ident;
-
-
-    var str_name = name.toString();
-    var sub_name = str_name.substring(str_name.lastIndexOf("/")+1, str_name.lastIndexOf(":")) + "_" +
-                   str_name.substring(str_name.lastIndexOf(":")+1, str_name.lastIndexOf(">"));
-
-    let chr_name = ke.chr_name = sub_name=="_" ? str_name : sub_name;
-
-    if (f.alias == null) {
-        alias = chr_name
-    }
-    else {
-        alias = f.alias
-    }
-
-    ke.enterClosure(chr_name, String(alias));
-
     let method = new Method(emitter, formals_types, cp.symbolUtf8(name), fntype != "function", f.attr);
 
     let defaults = extractDefaultValues({emitter:emitter, script:script}, f);
     if( defaults.length > 0 )
         method.setDefaults(defaults);
-
+        
     if (!f.attr.is_native) {
         let asm = method.asm;
 
@@ -719,37 +634,6 @@ function cgFunc(ctx0, f:Func) {
          * code then the default behavior of the emitter is to add a returnvoid
          * at the end, so there's nothing to worry about here.
          */
-
-        for each (var fx in f.params.fixtures) { 
-            let id;
-            switch type (fx.name) {
-            case (n: PropName) {
-                id = n.name.id;
-                ke.addSlot(ctx0, id, "", false, n.name.toks());
-            }
-            case (n: *) {
-                id = "unknown"
-            }
-            }
-        }
-
-        for each (var fx in f.vars.fixtures) { 
-            let id;
-            switch type (fx.name) {
-            case (n: TempName) {
-                id = "t"+n.index;
-            }
-            case (n: PropName) {
-                id = n.name.id;
-                ke.addSlot(ctx0, id, "", false, n.name.toks());
-            }
-            case (n: *) {
-                id = "unknown"
-            }
-            }
-            //print("cgFunc() fx.name="+id);
-        }
-
         cgStmts(fnctx, f.body);
         if( !use_regs )
             asm.killTemp(scope_reg);
@@ -757,18 +641,8 @@ function cgFunc(ctx0, f:Func) {
             asm.I_getlocal(capture_reg);
             asm.I_returnvalue();
         }
-        ke.currentClosure().tokens = f.toks();
     }
-
-    f.chrName = chr_name;
-
-    //print("cgFunc() name="+sub_name);
-
-    //print("cgFunc() 2 chr_name="+chr_name);
-
-    var mid = method.finalize();
-    ke.exitClosure();
-    return mid;
+    return method.finalize();
 }
 
 function cgOptimizedParams(fnctx, f:Func) {
@@ -850,7 +724,7 @@ function setupArguments(ctx, f) {
         //
         // Then initialize it.  It must be done first according to E262-3.
 
-        cgFixtures(ctx, [new Ast::Fixture(new PropName(new Ast::Name(Ast::publicNS, Token::sym_arguments, [])), 
+        cgFixtures(ctx, [new Ast::Fixture(new PropName(new Ast::Name(Ast::publicNS, Token::sym_arguments)), 
                                           new ValFixture(Ast::anyType, false))]);
         cgExpr(ctx, new Ast::SetExpr(Ast::assignOp, 
                                      new Ast::Identifier(Token::sym_arguments, Ast::publicNSSL), 
@@ -955,12 +829,11 @@ function findBinding({stk, asm}, name: IDENT, nssl: Ast::NamespaceSetList) {
                 return bind;
             }
         }
-        //print("findBinding() stk.tag="+stk.tag+" stk.slots="+stk.slots);
         if( stk.tag =="instance" ||
             (stk.tag == "function" && !stk.push_this) ||
             stk.tag=="with" || 
             stk.tag=="catch")
-            ; //break;  // Can't go past an instance, or a function without a 'this'
+            break;  // Can't go past an instance, or a function without a 'this'
         stk = stk.link;
     }
     //print("Found NO binding for " + name + " " + nssl);
@@ -1028,8 +901,8 @@ function restoreScopes(ctx) {
 
 function pushProgram(script, capture_reg)
     new CTX( script.init.asm, 
-             { tag: "script", push_this: true, capture_reg: capture_reg, link: null, slots: new Util::Names() }, 
-             script);
+             { tag: "script", push_this: true, capture_reg: capture_reg, link: null }, 
+             script );
 
 function pushClass({asm, stk}, cls)
     new CTX( asm,
@@ -1060,9 +933,8 @@ function pushFunction({stk}, function_type, scope_reg, capture_reg, push_this, u
                push_this: push_this,
                use_regs: use_regs,
                link: stk,
-               slots: new Util::Names() 
-             },
-             func );
+               slots: new Util::Names() },
+               func );
 
 function pushBreak({asm, stk, target}, branchTarget)
     new CTX( asm, 
