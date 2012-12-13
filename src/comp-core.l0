@@ -47,28 +47,6 @@ internal function compile(consume, produce, context, start_line) {
     let parser = new Parse::Parser(input, getTopFixtures(), context, start_line);
     let prog = parser.program();
 
-    let str = "";
-    for (var i = 0; i < Parse::lineBreaksByToken.length; i++) {
-        str += parser.scan.lineBreaksByChar[i] + " ";
-        str += Parse::lineBreaksByToken[i] + "\n";
-    }
-    print(str);
-    Util::writeStringToFile(str,context+".lines");
-
-    let str = ""
-    for (var t in Parse::tokenStream) {
-        let token = Token::tokenStore[Parse::tokenStream[t].tid];
-        str += Parse::tokenStream[t].start + " " + Parse::tokenStream[t].end + "\n"
-    }
-
-    print(str);
-    Util::writeStringToFile(str,context+".tokens");
-
-    let ast_str = (new Ast::Serializer()).serialize(prog);
-    print (ast_str);
-    Util::writeStringToFile(ast_str,context+".ast");
-
-
     let t2 = new Date;
 
     let res = produce( Gen::cg(prog) );
@@ -84,7 +62,7 @@ internal function compile(consume, produce, context, start_line) {
 
 class Flags 
 {
-    var es3_keywords = true;              // recognize only ES3 keywords (not future reserved)
+    var es3_keywords = false;             // recognize only ES3 keywords (not future reserved)
     var es4_kwd_debugger = false;         // language misfeature
     var debugging = false;                // true to enable debug code
     var ext_dynamic_override = false;     // true to enable 'dynamic override' expression
@@ -140,17 +118,13 @@ function getTopFixtures()
 
 function compileFile(fname, start_line=1)
     compile( (function () Util::readStringFromFile(fname)),
-             (function ([abc, karyotype]) {
-                 return [Util::writeBytesToFile(abc.getBytes(), fname + ".abc"), 
-                         Util::writeStringToFile(karyotype,fname+".karyotype.txt")]}),
+             (function (abc) Util::writeBytesToFile(abc.getBytes(), fname + ".abc")),
              fname,
              start_line );
 
 function compileFileToBytes(fname, start_line=1)
     compile( (function () Util::readStringFromFile(fname)),
-             (function ([abc,karyotype]) {
-                 return [abc.getBytes(), karyotype]
-             }),
+             (function (abc) abc.getBytes()),
              fname,
              start_line );
 

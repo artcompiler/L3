@@ -801,7 +801,7 @@ class AVM2Assembler
     }
 
     function finalize() {
-        //resolveBackpatches();
+        resolveBackpatches();
         return code;
     }
 

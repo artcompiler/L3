@@ -1,4 +1,4 @@
-/* -*- Mode: javascript; indent-tabs-mode: nil; tab-width: 4 -*- */
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 4 -*- */
 /* vi: set ts=4 sw=4 expandtab: (add to ~/.vimrc: set modeline modelines=5) */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -61,32 +61,34 @@ public function compileHook (s:String)
     if (prof)
         ESC::startProfile();
 
+    let make_swf = ESC::flags.make_swf;
+    let abcs = [];
+
     for ( let i=0, limit=files.length ; i < limit ; i++ ) {
         let fname = files[i];
-        let [parse,cogen,[bytes,karyotype]] = ESC::compileFileToBytes (fname);
-        Util::writeBytesToFile(bytes, fname + ".abc");
-        //        Util::writeStringToFile (karyotype,fname+".karyotype");
+        //        let [parse,cogen,bytes] = ESC::compileFileToBytes (fname);
+        //Util::writeBytesToFile(bytes, fname + ".abc");
+        //if (make_swf)
+        //    abcs[i] = bytes;
 
-        total_frontend += parse;
-        total_backend += cogen;
+        let ast = ESC::parseFromFileAndEncodeAst(fname);
+        print (ast)
+            //total_frontend += parse;
+            //total_backend += cogen;
         print (fname);
-        print ("  Scan+parse:  " + parse + " ms");
-        print ("  Cogen:       " + cogen + " ms");
-
-        /*
-        var abc = Abc::parseAbcFile(new ABCByteStream(bytes));
-
-        print ("encoding karyotype file, bytes.length="+abc.bodies.length);
-        var tx = karyoFromAbc(fname, abc);
-        Util::writeStringToFile (tx,fname+".karyotype");
-        print (fname+".karyotype.txt, "+tx.length+" chars written");
-        */
+        //print ("  Scan+parse:  " + parse + " ms");
+        //print ("  Cogen:       " + cogen + " ms");
 
         // This is a hack.  The profiler needs to be callback-based; the
         // snapshot is captured so that the profiler won't lose data.
-        if (prof)
-            ESC::snapshotProfile();
+        //if (prof)
+        //    ESC::snapshotProfile();
 
+    }
+
+    if (make_swf) {
+        print ("  SWF " + fname + ".swf");
+        dumpSWFFile (abcs, fname + ".swf");
     }
 
     let after = new Date();
@@ -102,53 +104,4 @@ public function compileHook (s:String)
         ESC::stopProfile();
         ESC::dumpProfile("esc.profile");
     }
-}
-
-// chr - CHRNAME CHRLABEL START END COLOR
-//      "       method#  0 size "
-
-function karyoFromAbc(fname, abc) {
-    var chr_count = 1;
-    var ticket = 1;
-    var out_str = "";
-    var code_size = 0;
-    var kname = fname.substring(fname.lastIndexOf("/")+1, fname.lastIndexOf("."));
-    var start;
-    var end = 0;
-
-    for each (body in abc.bodies) {
-        var band_str = "";
-        /*
-        for each (insn in body.code) {            
-            var bandlabel = ticket++;
-            var bandname = "b"+bandlabel;
-            start = end;
-            end = end + body.code.length;
-            var color = ticket % 2 ? "grey" : "black";
-            band_str += "\nband";
-            band_str += " " + chrname;
-            band_str += " " + bandname;
-            band_str += " " + bandlabel;
-            band_str += " " + start;
-            band_str += " " + end;
-            band_str += " " + color;
-        }
-        */
-
-        var chr_str = "";
-        var chrlabel = chr_count++;
-        var chrname = kname+"_"+chrlabel;
-        var start = 0;
-        var end = body.code.length; //end = end + body.code.length;
-        var color = "spectral-5-div-"+(chr_count%5+1);
-        chr_str += "\nchr -";
-        chr_str += " " + chrname;
-        chr_str += " " + chrname;
-        chr_str += " " + start;
-        chr_str += " " + end;
-        chr_str += " " + color;
-
-        out_str += "\n" + chr_str + band_str;
-    }
-    return out_str;
 }

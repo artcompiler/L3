@@ -459,16 +459,6 @@ class ABCConstantPool
     var multiname_map;
     var namespace_map;
     var namespaceset_map;
-
-    function get length () {
-        return int_count
-            + uint_count
-            + double_count
-            + utf8_count
-            + namespace_count
-            + namespaceset_count
-            + multiname_pool.length;
-    }
 }
 
 class ABCMethodInfo
